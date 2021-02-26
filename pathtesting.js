@@ -1,23 +1,34 @@
 var svg = "http://www.w3.org/2000/svg";
 
-function groupPoints(points, distance){
+function groupPoints(points, pathpoints){
 	let remaining = [...points];
 	let output = [];
+    let lines = makeLines(pathpoints);
 	while(remaining.length > 0){
 		let group = [];
 		group.push(remaining.splice(0, 1)[0]);
 		let processed = 0;
 		while(processed < group.length){
 			let p = group[processed];
-			let next = nearestPoint(p, remaining);
-			let d = Math.sqrt(Math.pow((p.x - next.x), 2) + Math.pow((p.y - next.y), 2));
-			if(d < distance){
-				group.push(remaining.splice(remaining.indexOf(next), 1)[0]);
-			}
+            let nointersects = [];
+            for(let i = 0; i < remaining.length; i++){
+                let passed = true;
+                intersectloop:
+                for(let j = 0; j < lines.length; j++){
+                    if(checksForIntersect(p, remaining[i], lines[j].start, lines[j].end)){
+                        passed = false;
+                        break intersectloop;
+                    }
+                }
+                if(passed) nointersects.push(remaining[i])
+            }
+			let next = nearestPoint(p, nointersects);
+            if(next.x != undefined) group.push(remaining.splice(remaining.indexOf(next), 1)[0]);
 			processed++;
 		}
 		output.push(group);
 	}
+    console.log(output);
 	return output;
 }
 
@@ -33,6 +44,19 @@ function nearestPoint(point, points){
 		}
 	}
 	return minpoint;
+}
+
+function makeLines(pathpoints){
+    let lines = [];
+    for(let i = 0; i < pathpoints.length - 1; i++){
+        let line = {};
+        line.start = pathpoints[i];
+        line.end = pathpoints[i+1];
+        lines.push(line);
+    }
+    let line = {start: pathpoints[pathpoints.length-1], end: pathpoints[0]};
+    lines.push(line);
+    return lines;
 }
 
 
@@ -108,17 +132,38 @@ function removePoints(pathpoints, newpoints, distance, remove, epsilon = 0.01){
 
 
 function drawpoints(points, parent){
-	let g = document.createElementNS("http://www.w3.org/2000/svg", 'g');
+	let g = document.createElementNS(svg, 'g');
 	for(let i = 0; i < points.length; i++){
-		let c = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
+		let c = document.createElementNS(svg, 'circle');
 		let point = points[i];
 		c.setAttribute('cx', point.x);
 		c.setAttribute('cy', point.y);
 		c.setAttribute('r', 1);
 		c.setAttribute('fill', 'black');
+        c.addEventListener('click', () => {
+            console.log(`x: ${point.x} y: ${point.y} i: ${i}`);
+        })
 		g.appendChild(c);
 	}
 	parent.appendChild(g);
+}
+
+function drawLines(lines, parent){
+    let g = document.createElementNS(svg, 'g');
+    for(let i = 0; i < lines.length; i++){
+        let l = document.createElementNS(svg, 'line');
+        let line = lines[i];
+        l.setAttribute('x1', line.start.x);
+		l.setAttribute('x2', line.end.x);
+        l.setAttribute('y1', line.start.y);
+		l.setAttribute('y2', line.end.y);
+		l.setAttribute('stroke', 'green');
+        l.addEventListener('click', () => {
+            console.log(`Start: (${line.start.x}, ${line.start.y}) End: (${line.end.x}, ${line.end.y})`);
+        })
+		g.appendChild(l);
+    }
+    parent.appendChild(g);
 }
 
 
@@ -202,41 +247,81 @@ function getPoints(gran, path){
 	return points;
 }
 
+function checksForIntersect(point1, point2, point3, point4){
+    return intersects(point1.x, point1.y, point2.x, point2.y, point3.x, point3.y, point4.x, point4.y);
+}
+
+function intersects(a,b,c,d,p,q,r,s) {
+    var det, gamma, lambda;
+    det = (c - a) * (s - q) - (r - p) * (d - b);
+    if (det === 0) {
+        return false;
+    }else{
+        lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+        gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+        return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+    }
+}
+
 
 //test area
 window.onload = () => {
     let parent = document.querySelector('svg');
     let path = document.getElementById('originalpath');
-    // let points = getPoints(100, path);
+    let points = getPoints(100, path);
     
-    let origpoints = getPoints(12, path);
-    let wp = wobblepoints(5, origpoints);
-    drawpoints(wp, parent);
-    let newpath = document.createElementNS(svg, 'path');
-    newpath.setAttribute('d', catmullRomFitting(wp, 0.5));
-    newpath.setAttribute('stroke', 'red');
-    newpath.setAttribute('fill', 'none');
-    parent.appendChild(newpath);
-    let points = getPoints(100, newpath);
+    // let origpoints = getPoints(12, path);
+    // let wp = wobblepoints(5, origpoints);
+    // drawpoints(wp, parent);
+    // let newpath = document.createElementNS(svg, 'path');
+    // newpath.setAttribute('d', catmullRomFitting(wp, 0.5));
+    // newpath.setAttribute('stroke', 'red');
+    // newpath.setAttribute('fill', 'none');
+    // parent.appendChild(newpath);
+    // let points = getPoints(100, newpath);
     
     
     let tp = tangentPoints(points, 10);
     let rmtp = removePoints(points, tp, 10, 0);
-    let gptp = groupPoints(rmtp, 10);
+    let gptp = groupPoints(rmtp, getPoints(20, path));
+    // let gptp = groupPoints(rmtp, getPoints(20, newpath));
+
+    // function testRemove(arr, parent){
+    //     let g = document.createElementNS(svg, 'g');
+    //     for(let i = 0; i < arr.length; i++){
+    //         let p = document.createElementNS(svg, 'path');
+    //         // p.setAttribute('d', catmullRomFitting(wobblepoints(0.1, arr[i]), 0.5));
+    //         p.setAttribute('d', catmullRomFitting(arr[i], 0.5));
+    //         p.setAttribute('stroke', 'blue');
+    //         p.setAttribute('fill', 'none');
+    //         g.appendChild(p);
+    //     }
+    //     parent.appendChild(g);
+    // }
 
     function testRemove(arr, parent){
-        let g = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-        for(let i = 0; i < arr.length; i++){
-        let p = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-        //p.setAttribute('d', catmullRomFitting(wobblepoints(0.1, arr[i]), 0.5));
-        p.setAttribute('d', catmullRomFitting(arr[i], 0.5));
+        let d = "";
+        let p = document.createElementNS(svg, 'path');
         p.setAttribute('stroke', 'blue');
         p.setAttribute('fill', 'none');
-        g.appendChild(p);
+        p.setAttribute('fill-rule', 'evenodd');
+        for(let i = 0; i < arr.length; i++){
+            d += catmullRomFitting(arr[i], 0.5);
         }
-        parent.appendChild(g);
+        p.setAttribute('d', d);
+        p.id = "outlined"
+        parent.appendChild(p)
     }
 
     //drawpoints(rmtp, parent);
+    //drawLines(makeLines(points), parent);
     testRemove(gptp, parent);
+    //drawpoints(rmtp, parent);
+
+    let point = parent.createSVGPoint();
+    point.x = 40;
+    point.y = 40;
+    drawpoints([point], parent);
+    let outlined = document.getElementById('outlined');
+    console.log(outlined.isPointInFill(point));
 }
