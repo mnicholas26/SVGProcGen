@@ -1,3 +1,5 @@
+var svg = "http://www.w3.org/2000/svg";
+
 function groupPoints(points, distance){
 	let remaining = [...points];
 	let output = [];
@@ -190,24 +192,6 @@ function catmullRomFitting(data,alpha) {
     }
 }
 
-// function drawpoints(gran, path, parent){
-// 	let points = [];
-// 	let len = path.getTotalLength();
-// 	let g = document.createElementNS("http://www.w3.org/2000/svg", 'g');
-// 	for(let i = 0; i < gran; i++){
-// 		let c = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
-// 		let point = path.getPointAtLength((len/gran)*i);
-// 		points.push(point);
-// 		c.setAttribute('cx', point.x);
-// 		c.setAttribute('cy', point.y);
-// 		c.setAttribute('r', 1);
-// 		c.setAttribute('fill', 'black');
-// 		g.appendChild(c);
-// 	}
-// 	parent.appendChild(g);
-// 	return points;
-// }
-
 function getPoints(gran, path){
 	let points = [];
 	let len = path.getTotalLength();
@@ -223,7 +207,19 @@ function getPoints(gran, path){
 window.onload = () => {
     let parent = document.querySelector('svg');
     let path = document.getElementById('originalpath');
-    let points = getPoints(100, path);
+    // let points = getPoints(100, path);
+    
+    let origpoints = getPoints(12, path);
+    let wp = wobblepoints(5, origpoints);
+    drawpoints(wp, parent);
+    let newpath = document.createElementNS(svg, 'path');
+    newpath.setAttribute('d', catmullRomFitting(wp, 0.5));
+    newpath.setAttribute('stroke', 'red');
+    newpath.setAttribute('fill', 'none');
+    parent.appendChild(newpath);
+    let points = getPoints(100, newpath);
+    
+    
     let tp = tangentPoints(points, 10);
     let rmtp = removePoints(points, tp, 10, 0);
     let gptp = groupPoints(rmtp, 10);
@@ -232,7 +228,8 @@ window.onload = () => {
         let g = document.createElementNS("http://www.w3.org/2000/svg", 'g');
         for(let i = 0; i < arr.length; i++){
         let p = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-        p.setAttribute('d', catmullRomFitting(wobblepoints(0.1, arr[i]), 0.5));
+        //p.setAttribute('d', catmullRomFitting(wobblepoints(0.1, arr[i]), 0.5));
+        p.setAttribute('d', catmullRomFitting(arr[i], 0.5));
         p.setAttribute('stroke', 'blue');
         p.setAttribute('fill', 'none');
         g.appendChild(p);
@@ -240,6 +237,6 @@ window.onload = () => {
         parent.appendChild(g);
     }
 
-    drawpoints(gptp, parent);
+    //drawpoints(rmtp, parent);
     testRemove(gptp, parent);
 }
