@@ -10,6 +10,7 @@ window.onload = function(){
     svg.xbounds = 2500;
     svg.ybounds = 2500;
     svg.lineoffset = 50
+    svg.fragments = [];
 
     function drawGrid(){
         //calcs based on scale how far apart lines should be
@@ -147,52 +148,40 @@ window.onload = function(){
         return Math.sqrt(Math.pow((p1.x - p2.x), 2) + Math.pow((p1.y - p2.y), 2));
     }
 
-    function findCentreID(points){
-        let minval = Infinity;
-        let minid = -1;
-        for(let i = 0; i < points.length; i++){
-            let total = 0;
-            for(let j = 0; j < points.length; j++){
-                if(i == j) continue;
-                total += findDistance(points[i], points[j]);
-            }
-            total /= (points.length - 1);
-            if(total < minval){
-                minid = i;
-                minval = total;
-            }
-        }
-        return minid;
-    }
-
-    function createShape(id){
+    function createfragment(id){
         let shapes = [
             {
                 points: [[{x: 0, y: 0}, {x: 50, y: 0}, {x: 50, y: 50}, {x: 100, y: 50}, {x: 100, y: 150}, {x: 50, y: 150}, {x: 50, y: 100}, {x: 0, y: 100}]],
-                centre: {x: 25, y: 75}
+                interior: [{x: 25, y: 25}, {x: 25, y: 75}, {x: 75, y: 75}, {x: 75, y: 125}],
+                centre: 1
             },
             {
                 points: [[{x: 0, y: 0}, {x: 150, y: 0}, {x: 150, y: 50}, {x: 100, y: 50}, {x: 100, y: 100}, {x: 50, y: 100}, {x: 50, y: 50}, {x: 0, y:50}]],
-                centre: {x: 75, y: 25}
+                interior: [{x: 25, y: 25}, {x: 75, y: 25}, {x: 75, y: 75}, {x: 1255, y: 25}],
+                centre: 1
             },
             {
                 points: [[{x: 0, y: 0}, {x: 100, y: 0}, {x: 100, y: 100}, {x: 0, y: 100}]],
+                interior: [{x: 25, y: 25}, {x: 25, y: 75}, {x: 75, y: 25}, {x: 75, y: 75}],
                 centre: {x: 50, y: 50}
             },
             {
                 points: [[{x: 0, y: 0}, {x: 200, y: 0}, {x: 200, y: 50}, {x: 0, y: 50}]],
-                centre: {x: 75, y: 25}
+                interior: [{x: 25, y: 25}, {x: 75, y: 25}, {x: 125, y: 25}, {x: 175, y: 25}],
+                centre: 1
             },
             {
                 points: [
                     [{x: 0, y: 0}, {x: 150, y: 0}, {x: 150, y: 150}, {x: 0, y: 150}],
                     [{x: 50, y: 50}, {x: 100, y: 50}, {x: 100, y: 100}, {x: 50, y: 100}]
                 ],
+                interior: [{x: 25, y: 25}, {x: 75, y: 25}, {x: 125, y: 25}, {x: 125, y: 75}, {x: 125, y: 125}, {x: 75, y: 125}, {x: 25, y: 125}, {x: 25, y: 75}],
                 centre: {x: 75, y: 75}
             },
             {
                 points: [[{x: 0, y: 0}, {x: 100, y: 0}, {x: 100, y: 50}, {x: 150, y: 50}, {x: 150, y: 100}, {x: 50, y: 100}, {x: 50, y: 50}, {x: 0, y: 50}]],
-                centre: {x: 75, y: 25}
+                interior: [{x: 25, y: 25}, {x: 75, y: 25}, {x: 75, y: 75}, {x: 125, y: 75}],
+                centre: 1
             },
             {
                 points: [
@@ -200,21 +189,55 @@ window.onload = function(){
                     [{x: 50, y: 50}, {x: 100, y: 50}, {x: 100, y: 100}, {x: 50, y: 100}],
                     [{x: 150, y: 50}, {x: 200, y: 50}, {x: 200, y: 100}, {x: 150, y: 100}]
                 ],
-                centre: {x: 125, y: 75}
+                interior: [{x: 25, y: 25}, {x: 75, y: 25}, {x: 125, y: 25}, {x: 125, y: 75}, {x: 125, y: 125}, {x: 75, y: 125}, {x: 25, y: 125}, {x: 25, y: 75},
+                            {x: 175, y: 25}, {x: 225, y: 25}, {x: 225, y: 75}, {x: 225, y: 125}, {x: 175, y: 125}],
+                centre: 3
             },
             {
                 points: [[{x: 50, y: 0}, {x: 100, y: 0}, {x: 100, y: 50}, {x: 150, y: 50}, {x: 150, y: 100}, {x: 100, y: 100}, {x: 100, y: 150},
                             {x: 50, y: 150}, {x: 50, y: 100}, {x: 0, y: 100}, {x: 0, y: 50}, {x: 50, y: 50}]],
-                centre: {x: 75, y: 75}
+                interior: [{x: 75, y: 25}, {x: 75, y: 75}, {x: 75, y: 125}, {x: 25, y: 75}, {x: 125, y: 75}],
+                centre: 1
+            },
+            {
+                points: [[{x: 0, y: 0}, {x: 50, y: 0}, {x: 50, y: 100}, {x: 100, y: 100}, {x: 100, y: 150}, {x: 0, y: 150}]],
+                interior: [{x: 25, y: 25}, {x: 25, y: 75}, {x: 25, y: 125}, {x: 75, y: 125}],
+                centre: 1
+            },
+            {
+                points: [[{x: 0, y: 0}, {x: 150, y: 0}, {x: 150, y: 100}, {x: 100, y: 100}, {x: 100, y: 50}, {x: 0, y: 50}]],
+                interior: [{x: 25, y: 25}, {x: 75, y: 25}, {x: 125, y: 25}, {x: 125, y: 75}],
+                centre: 1
             }
         ]
 
+        let fragment = document.createElementNS(svgNS, 'g');
         let shape = document.createElementNS(svgNS, 'path');
-        shape.pointArray = shapes[id].points;
-        console.log(shape.pointArray);
 
-        shape.pointArrayToString = function(){
-            let arrs = this.pointArray;
+        fragment.shape = shape;
+
+        shape.points = shapes[id].points;
+        fragment.points = [];
+        for(let i = 0; i < shape.points.length; i++){
+            for(let j = 0; j < shape.points[i].length; j++){
+                fragment.points.push(shape.points[i][j]);
+            }
+        }
+
+        shape.interior = shapes[id].interior;
+        for(const p of shape.interior){
+            fragment.points.push(p);
+        }
+
+        if(typeof shapes[id].centre == 'number') shape.centre = shapes[id].interior[shapes[id].centre];
+        else{
+            shape.centre = shapes[id].centre;
+            console.log(shape.centre)
+            fragment.points.push(shape.centre);
+        }
+
+        shape.pointsToString = function(){
+            let arrs = this.points;
             let str = "";
             for(let j = 0; j < arrs.length; j++){
                 let arr = arrs[j];
@@ -227,19 +250,13 @@ window.onload = function(){
             return str;
         }
 
-        shape.setAttribute('d', shape.pointArrayToString());
+        shape.setAttribute('d', shape.pointsToString());
         shape.setAttribute('fill', 'blue');
         shape.setAttribute('fill-rule', 'evenodd');
 
-        // shape.centreID = findCentreID(shape.pointArray);
-        // shape.centre = function(){
-        //     return shape.pointArray.shape[shape.centreID];
-        // }
-        shape.centre = shapes[id].centre;
-
         shape.setBBox = function(){
             let minx = Infinity, miny = Infinity, maxx = 0, maxy = 0;
-            let arr = this.pointArray[0];
+            let arr = this.points[0];
             for(let i = 0; i < arr.length; i++){
                 let p = arr[i];
                 if(p.x < minx) minx = p.x;
@@ -247,68 +264,65 @@ window.onload = function(){
                 if(p.y < miny) miny = p.y;
                 else if(p.y > maxy) maxy = p.y;
             }
-            shape.bbox = {minx: minx, miny: miny, maxx: maxx, maxy: maxy, height: maxy - miny, width: maxx - minx}
+            //tl, tr, br, bl
+            shape.bbox = {points: [{x: minx, y: miny}, {x: maxx, y: miny}, {x: maxx, y: maxy}, {x: minx, y: maxy}]};
         }
 
         shape.setBBox();
-
-        shape.translate = function(amount){
-            let arrs = this.pointArray;
-            for(let j = 0; j < arrs.length; j++){
-                let arr = arrs[j];
-                for(let i = 0; i < arr.length; i++){
-                    arr[i].x += amount.x;
-                    arr[i].y += amount.y;
-                }
-            }
-            shape.setAttribute('d', shape.pointArrayToString());
-            shape.bbox.minx += amount.x;
-            shape.bbox.maxx += amount.x;
-            shape.bbox.miny += amount.y;
-            shape.bbox.maxy += amount.y;
-            shape.centre.x += amount.x;
-            shape.centre.y += amount.y;
+        for(let i = 0; i < shape.bbox.points.length; i++){
+            fragment.points.push(shape.bbox.points[i]);
         }
 
-        shape.rotate = function(){
-            let centre = this.centre;
-            let arrs = this.pointArray;
-            for(let j = 0; j < arrs.length; j++){
-                let arr = arrs[j];
-                for(let i = 0; i < arr.length; i++){
-                    let x = -arr[i].y + centre.y + centre.x;
-                    let y = arr[i].x - centre.x + centre.y;
-                    // p'x = cos(theta) * (px-ox) - sin(theta) * (py-oy) + ox
-                    // p'y = sin(theta) * (px-ox) + cos(theta) * (py-oy) + oy
-                    arr[i] = {x: x, y: y};
-                }
+        fragment.translate = function(amount){
+            let arr = this.points;
+            for(let i = 0; i < arr.length; i++){
+                arr[i].x += amount.x;
+                arr[i].y += amount.y;
             }
-            shape.setAttribute('d', shape.pointArrayToString());
-            shape.bound();
+            this.shape.setAttribute('d', this.shape.pointsToString());
         }
 
-        shape.bound = function(){
-            shape.setBBox();
-            let bb = shape.bbox;
+        fragment.rotate = function(){
+            let centre = this.shape.centre;
+            let arr = this.points;
+            for(let i = 0; i < arr.length; i++){
+                let x = -arr[i].y + centre.y + centre.x;
+                let y = arr[i].x - centre.x + centre.y;
+                // p'x = cos(theta) * (px-ox) - sin(theta) * (py-oy) + ox
+                // p'y = sin(theta) * (px-ox) + cos(theta) * (py-oy) + oy
+                arr[i].x = x;
+                arr[i].y = y;
+            }
+            this.shape.setAttribute('d', this.shape.pointsToString());
+            //cycle array
+            this.shape.bbox.points.splice(0, 0, this.shape.bbox.points.pop());
+            fragment.bound();
+        }
+
+        fragment.bound = function(){
+            let bb = this.shape.bbox;
+            let topleft = bb.points[0], bottomright = bb.points[2];
             let dy = 0, dx = 0;
-            if(bb.minx < 0) dx = -bb.minx;
-            else if(bb.maxx > svg.xbounds) dx = svg.xbounds - bb.maxx;
-            if(bb.miny < 0) dy = -bb.miny;
-            else if(bb.maxy > svg.ybounds) dy = svg.ybounds - bb.maxy;
-            shape.translate({x: dx, y: dy});
+            if(topleft.x < 0) dx = -topleft.x;
+            else if(bottomright.x > svg.xbounds) dx = svg.xbounds - bottomright.x;
+            if(topleft.y < 0) dy = -topleft.y;
+            else if(bottomright.y > svg.ybounds) dy = svg.ybounds - bottomright.y;
+            this.translate({x: dx, y: dy});
         }
 
-        setDraggable(shape);
+        setDraggable(fragment);
 
-        svg.appendChild(shape);
+        fragment.appendChild(shape);
+        svg.fragments.push(fragment);
+        svg.appendChild(fragment);
     }
 
     
-    function setDraggable(shape){
-        shape.addEventListener('mousedown', (e) => {
+    function setDraggable(fragment){
+        fragment.addEventListener('mousedown', (e) => {
             e.stopPropagation();
             if(e.which == 3){
-                shape.rotate();
+                fragment.rotate();
             }
             else{
                 svg.addEventListener('mousemove', drag);
@@ -318,7 +332,7 @@ window.onload = function(){
                 let lastpos = gridRound(getMousePosition(e));
         
                 function drag(e){
-                    shape.setAttribute('fill-opacity', 0.6);
+                    fragment.shape.setAttribute('fill-opacity', 0.6);
                     let pos = getMousePosition(e);
                     pos = gridRound(pos);
                     let dx = pos.x - lastpos.x;
@@ -326,7 +340,7 @@ window.onload = function(){
                     if(dx != 0 || dy != 0){
                         let amount = collisionCheck(dx, dy);
                         if(amount.x != 0 || amount.y != 0){
-                            shape.translate(amount);
+                            fragment.translate(amount);
                             lastpos = {x: lastpos.x + amount.x, y: lastpos.y + amount.y};
                         }
                     }
@@ -336,15 +350,45 @@ window.onload = function(){
                     svg.removeEventListener('mousemove', drag);
                     svg.removeEventListener('mouseup', enddrag);
                     svg.removeEventListener('mouseleave', enddrag);
-                    shape.setAttribute('fill-opacity', 1);
+                    fragment.shape.setAttribute('fill-opacity', 1);
                 }
 
                 function collisionCheck(dx, dy){
                     //boundary check
-                    if(shape.bbox.minx + dx < 0) dx = 0;
-                    else if(shape.bbox.maxx + dx > svg.xbounds) dx = 0;
-                    if(shape.bbox.miny + dy < 0) dy = 0;
-                    else if(shape.bbox.maxy + dy > svg.ybounds) dy = 0;
+                    let topleft = fragment.shape.bbox.points[0];
+                    let bottomright = fragment.shape.bbox.points[2];
+                    if(topleft.x + dx < 0) dx = 0;
+                    else if(bottomright.x + dx > svg.xbounds) dx = 0;
+                    if(topleft.y + dy < 0) dy = 0;
+                    else if(bottomright.y + dy > svg.ybounds) dy = 0;
+
+                    //fragments check
+                    for(let i = 0; i < svg.fragments.length; i++){
+                        let frag = svg.fragments[i];
+                        if(frag == fragment) continue;
+                        //bbox check
+                        let fragtl = frag.shape.bbox.points[0], fragbr = frag.shape.bbox.points[2];
+                        if(topleft.x + dx < fragbr.x && topleft.y + dy < fragbr.y 
+                            && bottomright.x + dx > fragtl.x && bottomright.y + dy > fragtl.y){
+                            // console.log(`collision: ${fragment} and ${frag}`);
+                            // check interiors
+                            let coll = false;
+                            fullcollcheck:
+                            for(let j = 0, int = fragment.shape.interior; j < int.length; j++){
+                                for(let k = 0, fint = frag.shape.interior; k < fint.length; k++){
+                                    if(fint[k].x == int[j].x + dx && fint[k].y == int[j].y + dy){
+                                        coll = true;
+                                        break fullcollcheck;
+                                    }
+                                }
+                            }
+                            if(coll){
+                                dx = 0;
+                                dy = 0;
+                                break;
+                            }
+                        }
+                    }
                     return {x: dx, y: dy};
                 }
             }
@@ -352,12 +396,14 @@ window.onload = function(){
     }
 
     drawGrid();
-    createShape(0);
-    createShape(1);
-    createShape(2);
-    createShape(3);
-    createShape(4);
-    createShape(5);
-    createShape(6);
-    createShape(7);
+    createfragment(0);
+    createfragment(1);
+    createfragment(2);
+    createfragment(3);
+    createfragment(4);
+    createfragment(5);
+    createfragment(6);
+    createfragment(7);
+    createfragment(8);
+    createfragment(9);
 }
